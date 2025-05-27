@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pong Pong</title>
+  <title>PONG PONG</title>
   <style>
     * {
       box-sizing: border-box;
@@ -59,8 +59,8 @@
   </style>
 </head>
 <body>
-  <div id="menu">
-  </div>
+  <div id="menu"></div>
+  <button id="pauseBtn">PAUSE</button>
   <canvas id="pong"></canvas>
   <script>
     const canvas = document.getElementById('pong');
@@ -68,6 +68,7 @@
     const paddleW = 20, paddleH = 100, ballSize = 16;
     let leftY, rightY, ballX, ballY;
     let vx = 4, vy = 4;
+    let speedMultiplier = 1;
     let up=false, down=false, w=false, s=false;
     let scoreL=0, scoreR=0;
     let state='menu', flashEnd=0, flashSide=null, flashVisible=true;
@@ -143,10 +144,8 @@
       canvas.height = window.innerHeight;
       leftY = (canvas.height - paddleH) / 2;
       rightY = (canvas.height - paddleH) / 2;
-      if (canvas.width > 0 && canvas.height > 0) {
-        ballX = canvas.width/2 - ballSize/2;
-        ballY = canvas.height/2 - ballSize/2;
-      }
+      ballX = canvas.width/2 - ballSize/2;
+      ballY = canvas.height/2 - ballSize/2;
     }
     window.addEventListener('resize', resize);
     resize();
@@ -180,11 +179,14 @@
       if (e.key.toLowerCase() === 's') s = false;
     });
 
+    document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
     function resetBall() {
       ballX = canvas.width/2 - ballSize/2;
       ballY = canvas.height/2 - ballSize/2;
       vx = -vx;
       vy = 4 * (Math.random() > 0.5 ? 1 : -1);
+      speedMultiplier = 1;
     }
 
     function startGame() {
@@ -196,6 +198,8 @@
       if (state === 'play') {
         state = 'menu';
         document.getElementById('pauseBtn').style.display = 'none';
+      } else if (state === 'menu') {
+        startGame();
       }
     }
 
@@ -205,18 +209,16 @@
       if (s && leftY + paddleH < canvas.height) leftY += 6;
       if (up && rightY > 0) rightY -= 6;
       if (down && rightY + paddleH < canvas.height) rightY += 6;
-
-      ballX += vx;
-      ballY += vy;
-
+      ballX += vx * speedMultiplier;
+      ballY += vy * speedMultiplier;
       if (ballY < 0 || ballY + ballSize > canvas.height) {
         vy = -vy;
         playTone(200, 100);
       }
-
       if (ballX < paddleW) {
         if (ballY + ballSize > leftY && ballY < leftY + paddleH) {
           vx = -vx;
+          speedMultiplier += 0.05;
           playTone(300, 100);
         } else {
           scoreR++;
@@ -230,6 +232,7 @@
       if (ballX + ballSize > canvas.width - paddleW) {
         if (ballY + ballSize > rightY && ballY < rightY + paddleH) {
           vx = -vx;
+          speedMultiplier += 0.05;
           playTone(300, 100);
         } else {
           scoreL++;
@@ -245,12 +248,7 @@
     function render() {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       if (state === 'menu') {
-        ctx.fillStyle = '#fff';
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        
         ctx.fillStyle = '#fff';
         for (let y = 0; y < canvas.height; y += 60) {
           for (let x = 0; x < canvas.width; x += 120) {
@@ -259,74 +257,65 @@
             }
           }
         }
-        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
         const titleText = 'PONG PONG';
         const titleWidth = titleText.length * 6 * 8;
         drawBlockText(titleText, centerX - titleWidth/2, centerY - 120, 8);
-        
         const startText = '2-PLAYER';
         const startWidth = startText.length * 6 * 4;
         renderBlockButton(startText, centerX - startWidth/2, centerY - 20, 4);
-        
         const resetText = 'R TO RESET GAME';
         const resetWidth = resetText.length * 6 * 3;
         drawBlockText(resetText, centerX - resetWidth/2, centerY + 50, 3);
-        
         const creditText = 'A FUNFRI GAME - BY Q8J.';
         const creditWidth = creditText.length * 6 * 2;
         drawBlockText(creditText, centerX - creditWidth/2, centerY + 90, 2);
-        
         return;
       }
-
       ctx.fillStyle = '#fff';
       for (let y = 20; y < canvas.height; y += 40) {
         ctx.fillRect(canvas.width/2 - 1, y, 2, 20);
       }
-
       if (state === 'flash') {
         flashVisible = Math.floor(Date.now() / 100) % 2 === 0;
       }
-
       if (state === 'flash' && flashSide === 'L' && !flashVisible) {
         ctx.fillStyle = '#000';
       } else {
         ctx.fillStyle = '#fff';
       }
       ctx.fillRect(0, leftY, paddleW, paddleH);
-
       if (state === 'flash' && flashSide === 'R' && !flashVisible) {
         ctx.fillStyle = '#000';
       } else {
         ctx.fillStyle = '#fff';
       }
       ctx.fillRect(canvas.width - paddleW, rightY, paddleW, paddleH);
-
       if (state === 'play') {
         ctx.fillStyle = '#fff';
         ctx.fillRect(ballX, ballY, ballSize, ballSize);
       }
-
       ctx.fillStyle = '#fff';
       const scoreText = scoreL.toString().padStart(2,'0');
       drawBlockText(scoreText, canvas.width * 0.25 - 24, 20, 6);
       const scoreText2 = scoreR.toString().padStart(2,'0');
       drawBlockText(scoreText2, canvas.width * 0.75 - 24, 20, 6);
-
       if (state === 'flash' && Date.now() > flashEnd) {
         resetBall();
         state = 'play';
       }
     }
 
-    canvas.addEventListener('click', (e) => {
+    canvas.addEventListener('click', e => {
       if (state === 'menu') {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const startWidth = 'START GAME'.length * 6 * 4;
+        const startText = '2-PLAYER';
+        const startWidth = startText.length * 6 * 4;
         const buttonX = centerX - startWidth/2;
         const buttonY = centerY - 20;
         if (x >= buttonX - 10 && x <= buttonX + startWidth + 10 && y >= buttonY - 5 && y <= buttonY + 25) {
@@ -336,7 +325,9 @@
     });
 
     (function loop() {
-      update(); render(); requestAnimationFrame(loop);
+      update();
+      render();
+      requestAnimationFrame(loop);
     })();
   </script>
 </body>
