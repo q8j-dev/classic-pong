@@ -120,8 +120,15 @@
       audioCtx = null;
     }
 
+    function ensureAudioResumed() {
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(()=>{});
+        }
+    }
+
     function playTone(freq, dur) {
       if (!audioCtx) return;
+      ensureAudioResumed();
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.connect(g); g.connect(audioCtx.destination);
@@ -133,13 +140,79 @@
       o.stop(audioCtx.currentTime + dur/1000);
     }
 
+    let musicNodes = [];
+    let musicGain;
+    let musicInitialized = false;
+    let isMusicPlaying = false;
+    const mainMelody = [
+        { time: 0.0, duration: 0.2, freq: 261.63, type: 'triangle' },
+        { time: 0.25, duration: 0.2, freq: 329.63, type: 'triangle' },
+        { time: 0.50, duration: 0.2, freq: 392.00, type: 'triangle' },
+        { time: 0.75, duration: 0.2, freq: 329.63, type: 'triangle' }
+    ];
+    const melodyLoopDuration = 1.0;
+    let musicSchedulerTimeout = null;
+
+    function initMusic() {
+        if (!audioCtx || musicInitialized) return;
+        musicGain = audioCtx.createGain();
+        musicGain.gain.value = 0.07; 
+        musicGain.connect(audioCtx.destination);
+        musicInitialized = true;
+    }
+
+    function playMusicSequence() {
+        if (!audioCtx || !musicInitialized || !isMusicPlaying) return;
+        const loopStartTime = audioCtx.currentTime;
+        musicNodes = [];
+        mainMelody.forEach(noteInfo => {
+            const osc = audioCtx.createOscillator();
+            osc.type = noteInfo.type;
+            osc.frequency.setValueAtTime(noteInfo.freq, loopStartTime + noteInfo.time);
+            osc.connect(musicGain);
+            osc.start(loopStartTime + noteInfo.time);
+            osc.stop(loopStartTime + noteInfo.time + noteInfo.duration);
+            musicNodes.push(osc);
+        });
+        musicSchedulerTimeout = setTimeout(playMusicSequence, melodyLoopDuration * 1000);
+    }
+
+    function startMusic() {
+        if (!audioCtx) return;
+        ensureAudioResumed();
+        initMusic();
+        if (isMusicPlaying) return;
+        isMusicPlaying = true;
+        playMusicSequence();
+    }
+
+    function stopMusic() {
+        if (!isMusicPlaying && musicSchedulerTimeout === null) return;
+        isMusicPlaying = false;
+        if (musicSchedulerTimeout) {
+            clearTimeout(musicSchedulerTimeout);
+            musicSchedulerTimeout = null;
+        }
+        musicNodes.forEach(osc => {
+            try {
+                osc.stop(audioCtx.currentTime);
+                osc.disconnect();
+            } catch (e) {}
+        });
+        musicNodes = [];
+    }
+
     document.addEventListener('keydown', e => {
       if (e.key === 'ArrowUp') up = true;
       if (e.key === 'ArrowDown') down = true;
       if (e.key.toLowerCase() === 'w') wKey = true;
       if (e.key.toLowerCase() === 's') sKey = true;
-      if (e.key.toLowerCase() === 'p') togglePause();
+      if (e.key.toLowerCase() === 'p') {
+        ensureAudioResumed();
+        togglePause();
+      }
       if (state === 'menu' && e.key.toLowerCase() === 'enter') {
+         ensureAudioResumed();
          startGame();
       }
     });
@@ -151,7 +224,10 @@
     });
 
     const pauseButton = document.getElementById('pauseBtn');
-    pauseButton.addEventListener('click', togglePause);
+    pauseButton.addEventListener('click', () => {
+        ensureAudioResumed();
+        togglePause();
+    });
 
     function resetBall(direction) {
       ballX = canvas.width/2 - ballSize/2;
@@ -168,15 +244,18 @@
       pauseButton.textContent = 'PAUSE';
       pauseButton.style.display = 'block';
       resetBall(Math.random() > 0.5 ? 'left' : 'right');
+      startMusic();
     }
 
     function togglePause() {
       if (state === 'play') {
         state = 'paused';
         pauseButton.textContent = 'RESUME';
+        stopMusic();
       } else if (state === 'paused') {
         state = 'play';
         pauseButton.textContent = 'PAUSE';
+        startMusic();
       } else if (state === 'menu') {
         startGame();
       }
@@ -258,6 +337,9 @@
         const controlsText = "P1: W S | P2: UP DOWN | P: PAUSE";
         const controlsTextWidth = controlsText.length * 6 * 2 -2;
         drawBlockText(controlsText, centerX - controlsTextWidth/2, centerY + 60, 2);
+        
+        pauseButton.style.display = 'none'; 
+        stopMusic();
         return;
       }
       
@@ -274,7 +356,7 @@
       ctx.fillStyle = (state === 'flash' && flashSide === 'R' && !flashVisible) ? '#500' : '#fff';
       ctx.fillRect(canvas.width - paddleW, rightY, paddleW, paddleH);
 
-      if (state === 'play' || (state === 'flash' && flashVisible)) {
+      if (state === 'play' || (state === 'flash' && flashVisible) || state === 'paused') {
         ctx.fillStyle = '#fff';
         ctx.fillRect(ballX, ballY, ballSize, ballSize);
       }
@@ -291,6 +373,7 @@
     }
 
     canvas.addEventListener('click', e => {
+      ensureAudioResumed();
       if (state === 'menu') {
         const rect = canvas.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
