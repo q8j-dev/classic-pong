@@ -149,8 +149,23 @@
     window.addEventListener('resize', resize);
     resize();
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let audioCtx;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        audioCtx = new AudioContextClass();
+      } catch (e) {
+        console.error("Could not create AudioContext:", e);
+        audioCtx = null; // Ensure audioCtx is null if creation fails
+      }
+    } else {
+      console.warn("AudioContext not supported.");
+      audioCtx = null; // Ensure audioCtx is null if not supported
+    }
     function playTone(freq, dur) {
+      if (!audioCtx) {
+        return; // Do nothing if AudioContext is not available or failed to initialize
+      }
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.connect(g); g.connect(audioCtx.destination);
