@@ -17,16 +17,6 @@
       font-family: 'Courier New', monospace; 
       user-select: none;
     }
-    #menu { 
-      position: absolute; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: #000; 
-      display: none; 
-      z-index: 2; 
-    }
     #pauseBtn { 
       position: fixed; 
       top: 20px; 
@@ -59,8 +49,8 @@
   </style>
 </head>
 <body>
-  <div id="menu"></div>
   <canvas id="pong"></canvas>
+  <button id="pauseBtn">PAUSE</button>
   <script>
     const canvas = document.getElementById('pong');
     const ctx = canvas.getContext('2d');
@@ -68,135 +58,125 @@
     let leftY, rightY, ballX, ballY;
     let vx = 4, vy = 4;
     let speedMultiplier = 1;
-    let up=false, down=false, w=false, s=false;
+    let up=false, down=false, wKey=false, sKey=false;
     let scoreL=0, scoreR=0;
     let state='menu', flashEnd=0, flashSide=null, flashVisible=true;
 
     const blockFont = {
-      'A': [[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
-      'B': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0]],
-      'C': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,0,0,1],[0,1,1,1,0]],
-      'D': [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],
-      'E': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,1,1,1,1]],
-      'F': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
-      'G': [[0,1,1,1,0],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[0,1,1,1,0]],
-      'I': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1]],
-      'J': [[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-      'L': [[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
-      'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
-      'N': [[1,0,0,0,1],[1,1,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[1,0,0,0,1]],
-      'O': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-      'P': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
-      'Q': [[0,1,1,1,0],[1,0,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[0,1,1,1,1]],
-      'R': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,1]],
-      'S': [[0,1,1,1,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-      'T': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
-      'U': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-      'V': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0]],
-      'W': [[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,0,0,0,1]],
-      'X': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]],
-      'Y': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
-      'Z': [[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,1,1,1,1]],
-      '0': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-      '1': [[0,0,1,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,1,1,1,0]],
-      '2': [[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,1,0,0,0],[1,1,1,1,1]],
-      '3': [[1,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-      '4': [[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,1],[0,0,0,1,0],[0,0,0,1,0]],
-      '5': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-      '6': [[0,1,1,1,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
-      '7': [[1,1,1,1,1],[0,0,0,0,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0]],
-      '8': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
-      '9': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,1],[0,0,0,0,1],[0,1,1,1,0]],
-      ' ': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
-      '-': [[0,0,0,0,0],[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0],[0,0,0,0,0]],
-      '.': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0]]
+      'A': [[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],'B': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0]],'C': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,0,0,1],[0,1,1,1,0]],'D': [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],'E': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,1,1,1,1]],'F': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],'G': [[0,1,1,1,0],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[0,1,1,1,0]],'I': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1]],'J': [[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],'L': [[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],'N': [[1,0,0,0,1],[1,1,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[1,0,0,0,1]],'O': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],'P': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],'Q': [[0,1,1,1,0],[1,0,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[0,1,1,1,1]],'R': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,1]],'S': [[0,1,1,1,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],'T': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],'U': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],'V': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0]],'W': [[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,0,0,0,1]],'X': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]],'Y': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],'Z': [[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,1,1,1,1]],
+      '0': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],'1': [[0,0,1,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,1,1,1,0]],'2': [[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,1,0,0,0],[1,1,1,1,1]],'3': [[1,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],'4': [[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,1],[0,0,0,1,0],[0,0,0,1,0]],'5': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],'6': [[0,1,1,1,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],'7': [[1,1,1,1,1],[0,0,0,0,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0]],'8': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],'9': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,1],[0,0,0,0,1],[0,1,1,1,0]],
+      ' ': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],'-': [[0,0,0,0,0],[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0],[0,0,0,0,0]],'.': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0]]
     };
 
     function drawBlockText(text, x, y, size) {
-      let xPos = x;
-      for (let char of text) {
+      let currentX = x;
+      for (let char of text.toUpperCase()) {
         if (blockFont[char]) {
           for (let row = 0; row < 5; row++) {
             for (let col = 0; col < 5; col++) {
               if (blockFont[char][row][col]) {
-                ctx.fillRect(xPos + col * size, y + row * size, size, size);
+                ctx.fillRect(currentX + col * size, y + row * size, size, size);
               }
             }
           }
-          xPos += 6 * size;
+          currentX += 6 * size;
         }
       }
     }
 
     function renderBlockButton(text, x, y, size) {
-      const width = text.length * 6 * size;
-      const height = 5 * size;
+      const textWidth = text.length * 6 * size - size; 
+      const textHeight = 5 * size;
+      const paddingX = size * 2;
+      const paddingY = size;
       ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x - 10, y - 5, width + 20, height + 10);
+      ctx.lineWidth = Math.max(1, Math.floor(size/2));
+      ctx.strokeRect(x - paddingX/2, y - paddingY/2, textWidth + paddingX, textHeight + paddingY);
       ctx.fillStyle = '#fff';
       drawBlockText(text, x, y, size);
     }
-
+    
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       leftY = (canvas.height - paddleH) / 2;
       rightY = (canvas.height - paddleH) / 2;
-      ballX = canvas.width/2 - ballSize/2;
-      ballY = canvas.height/2 - ballSize/2;
+      if (state === 'menu' || ballX === undefined) {
+        ballX = canvas.width/2 - ballSize/2;
+        ballY = canvas.height/2 - ballSize/2;
+      }
     }
     window.addEventListener('resize', resize);
-    resize();
+    
+    let audioCtx;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        audioCtx = new AudioContextClass();
+      } catch (e) {
+        audioCtx = null;
+      }
+    } else {
+      audioCtx = null;
+    }
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playTone(freq, dur) {
+      if (!audioCtx) return;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.connect(g); g.connect(audioCtx.destination);
       o.frequency.value = freq;
-      o.start();
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur/1000);
-      setTimeout(() => o.stop(), dur);
+      o.type = 'square';
+      g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + dur/1000);
+      o.start(audioCtx.currentTime);
+      o.stop(audioCtx.currentTime + dur/1000);
     }
 
     document.addEventListener('keydown', e => {
       if (e.key === 'ArrowUp') up = true;
       if (e.key === 'ArrowDown') down = true;
-      if (e.key.toLowerCase() === 'w') w = true;
-      if (e.key.toLowerCase() === 's') s = true;
-      if (e.key.toLowerCase() === 'r') togglePause();
-      if (e.key.toLowerCase() === 'r' && state === 'menu') {
-        scoreL = 0; scoreR = 0;
-        resetBall();
+      if (e.key.toLowerCase() === 'w') wKey = true;
+      if (e.key.toLowerCase() === 's') sKey = true;
+      if (e.key.toLowerCase() === 'p') togglePause();
+      if (state === 'menu' && e.key.toLowerCase() === 'enter') {
+         startGame();
       }
     });
     document.addEventListener('keyup', e => {
       if (e.key === 'ArrowUp') up = false;
       if (e.key === 'ArrowDown') down = false;
-      if (e.key.toLowerCase() === 'w') w = false;
-      if (e.key.toLowerCase() === 's') s = false;
+      if (e.key.toLowerCase() === 'w') wKey = false;
+      if (e.key.toLowerCase() === 's') sKey = false;
     });
 
-    document.getElementById('pauseBtn').addEventListener('click', togglePause);
+    const pauseButton = document.getElementById('pauseBtn');
+    pauseButton.addEventListener('click', togglePause);
 
-    function resetBall() {
+    function resetBall(direction) {
       ballX = canvas.width/2 - ballSize/2;
       ballY = canvas.height/2 - ballSize/2;
-      vx = -vx;
-      vy = 4 * (Math.random() > 0.5 ? 1 : -1);
+      vx = (direction === 'left' ? -4 : 4) * (Math.random() * 0.5 + 0.75);
+      vy = (Math.random() > 0.5 ? 4 : -4) * (Math.random() * 0.5 + 0.75);
       speedMultiplier = 1;
     }
 
     function startGame() {
+      if (state === 'play') return;
       scoreL = 0; scoreR = 0;
       state = 'play';
-      document.getElementById('pauseBtn').style.display = 'block';
+      pauseButton.textContent = 'PAUSE';
+      pauseButton.style.display = 'block';
+      resetBall(Math.random() > 0.5 ? 'left' : 'right');
     }
+
     function togglePause() {
       if (state === 'play') {
-        state = 'menu';
-        document.getElementById('pauseBtn').style.display = 'none';
+        state = 'paused';
+        pauseButton.textContent = 'RESUME';
+      } else if (state === 'paused') {
+        state = 'play';
+        pauseButton.textContent = 'PAUSE';
       } else if (state === 'menu') {
         startGame();
       }
@@ -204,104 +184,108 @@
 
     function update() {
       if (state !== 'play') return;
-      if (w && leftY > 0) leftY -= 6;
-      if (s && leftY + paddleH < canvas.height) leftY += 6;
-      if (up && rightY > 0) rightY -= 6;
-      if (down && rightY + paddleH < canvas.height) rightY += 6;
+      const paddleSpeed = 8;
+      if (wKey && leftY > 0) leftY -= paddleSpeed;
+      if (sKey && leftY + paddleH < canvas.height) leftY += paddleSpeed;
+      if (up && rightY > 0) rightY -= paddleSpeed;
+      if (down && rightY + paddleH < canvas.height) rightY += paddleSpeed;
+      
       ballX += vx * speedMultiplier;
       ballY += vy * speedMultiplier;
+
       if (ballY < 0 || ballY + ballSize > canvas.height) {
         vy = -vy;
-        playTone(200, 100);
+        ballY = ballY < 0 ? 0 : canvas.height - ballSize;
+        playTone(200, 80);
       }
+
       if (ballX < paddleW) {
         if (ballY + ballSize > leftY && ballY < leftY + paddleH) {
           vx = -vx;
-          speedMultiplier += 0.05;
-          playTone(300, 100);
+          ballX = paddleW;
+          const hitPos = (ballY + ballSize/2 - leftY) / paddleH; 
+          vy += (hitPos - 0.5) * 6; 
+          speedMultiplier = Math.min(2.5, speedMultiplier + 0.07);
+          playTone(300 + Math.random()*100, 100);
         } else {
           scoreR++;
-          playTone(100, 300);
+          playTone(100, 400);
           state = 'flash';
           flashEnd = Date.now() + 1000;
           flashSide = 'L';
-          flashVisible = true;
+          resetBall('right');
         }
       }
       if (ballX + ballSize > canvas.width - paddleW) {
         if (ballY + ballSize > rightY && ballY < rightY + paddleH) {
           vx = -vx;
-          speedMultiplier += 0.05;
-          playTone(300, 100);
+          ballX = canvas.width - paddleW - ballSize;
+          const hitPos = (ballY + ballSize/2 - rightY) / paddleH;
+          vy += (hitPos - 0.5) * 6;
+          speedMultiplier = Math.min(2.5, speedMultiplier + 0.07);
+          playTone(300 + Math.random()*100, 100);
         } else {
           scoreL++;
-          playTone(100, 300);
+          playTone(100, 400);
           state = 'flash';
           flashEnd = Date.now() + 1000;
           flashSide = 'R';
-          flashVisible = true;
+          resetBall('left');
         }
       }
+      vy = Math.max(-10, Math.min(10, vy));
     }
 
     function render() {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       if (state === 'menu') {
         ctx.fillStyle = '#fff';
-        for (let y = 0; y < canvas.height; y += 60) {
-          for (let x = 0; x < canvas.width; x += 120) {
-            if (Math.random() > 0.98) {
-              ctx.fillRect(x, y, 1, 1);
-            }
-          }
+        for (let i = 0; i < 100; i++) {
+            ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
         }
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         const titleText = 'PONG PONG';
-        const titleWidth = titleText.length * 6 * 8;
-        drawBlockText(titleText, centerX - titleWidth/2, centerY - 120, 8);
-        const startText = '2-PLAYER';
-        const startWidth = startText.length * 6 * 4;
-        renderBlockButton(startText, centerX - startWidth/2, centerY - 20, 4);
-        const resetText = 'R TO RESET GAME';
-        const resetWidth = resetText.length * 6 * 3;
-        drawBlockText(resetText, centerX - resetWidth/2, centerY + 50, 3);
-        const creditText = 'A FUNFRI GAME - BY Q8J.';
-        const creditWidth = creditText.length * 6 * 2;
-        drawBlockText(creditText, centerX - creditWidth/2, centerY + 90, 2);
+        const titleTextWidth = titleText.length * 6 * 8 - 8;
+        drawBlockText(titleText, centerX - titleTextWidth/2, centerY - 120, 8);
+        
+        const startText = 'PRESS ENTER';
+        const startTextWidth = startText.length * 6 * 4 - 4;
+        renderBlockButton(startText, centerX - startTextWidth/2, centerY - 20, 4);
+
+        const controlsText = "P1: W S | P2: UP DOWN | P: PAUSE";
+        const controlsTextWidth = controlsText.length * 6 * 2 -2;
+        drawBlockText(controlsText, centerX - controlsTextWidth/2, centerY + 60, 2);
         return;
       }
-      ctx.fillStyle = '#fff';
-      for (let y = 20; y < canvas.height; y += 40) {
-        ctx.fillRect(canvas.width/2 - 1, y, 2, 20);
+      
+      ctx.fillStyle = '#333';
+      for (let y = 10; y < canvas.height - 10; y += 30) {
+        ctx.fillRect(canvas.width/2 - 2, y, 4, 20);
       }
-      if (state === 'flash') {
-        flashVisible = Math.floor(Date.now() / 100) % 2 === 0;
-      }
-      if (state === 'flash' && flashSide === 'L' && !flashVisible) {
-        ctx.fillStyle = '#000';
-      } else {
-        ctx.fillStyle = '#fff';
-      }
+
+      flashVisible = state === 'flash' ? Math.floor(Date.now() / 150) % 2 === 0 : true;
+
+      ctx.fillStyle = (state === 'flash' && flashSide === 'L' && !flashVisible) ? '#500' : '#fff';
       ctx.fillRect(0, leftY, paddleW, paddleH);
-      if (state === 'flash' && flashSide === 'R' && !flashVisible) {
-        ctx.fillStyle = '#000';
-      } else {
-        ctx.fillStyle = '#fff';
-      }
+      
+      ctx.fillStyle = (state === 'flash' && flashSide === 'R' && !flashVisible) ? '#500' : '#fff';
       ctx.fillRect(canvas.width - paddleW, rightY, paddleW, paddleH);
-      if (state === 'play') {
+
+      if (state === 'play' || (state === 'flash' && flashVisible)) {
         ctx.fillStyle = '#fff';
         ctx.fillRect(ballX, ballY, ballSize, ballSize);
       }
+      
       ctx.fillStyle = '#fff';
-      const scoreText = scoreL.toString().padStart(2,'0');
-      drawBlockText(scoreText, canvas.width * 0.25 - 24, 20, 6);
-      const scoreText2 = scoreR.toString().padStart(2,'0');
-      drawBlockText(scoreText2, canvas.width * 0.75 - 24, 20, 6);
+      const scoreLText = scoreL.toString().padStart(2,'0');
+      drawBlockText(scoreLText, canvas.width * 0.25 - (2 * 6 * 6)/2, 20, 6);
+      const scoreRText = scoreR.toString().padStart(2,'0');
+      drawBlockText(scoreRText, canvas.width * 0.75 - (2 * 6 * 6)/2, 20, 6);
+
       if (state === 'flash' && Date.now() > flashEnd) {
-        resetBall();
         state = 'play';
       }
     }
@@ -309,19 +293,33 @@
     canvas.addEventListener('click', e => {
       if (state === 'menu') {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const startText = '2-PLAYER';
-        const startWidth = startText.length * 6 * 4;
-        const buttonX = centerX - startWidth/2;
-        const buttonY = centerY - 20;
-        if (x >= buttonX - 10 && x <= buttonX + startWidth + 10 && y >= buttonY - 5 && y <= buttonY + 25) {
+        const startText = 'PRESS ENTER';
+        const size = 4;
+        const textWidth = startText.length * 6 * size - size; 
+        const textHeight = 5 * size;
+        const paddingX = size * 2;
+        const paddingY = size;
+
+        const buttonVisualX = centerX - textWidth/2;
+        const buttonVisualY = centerY - 20;
+
+        const buttonLeft = buttonVisualX - paddingX/2;
+        const buttonTop = buttonVisualY - paddingY/2;
+        const buttonRight = buttonLeft + textWidth + paddingX;
+        const buttonBottom = buttonTop + textHeight + paddingY;
+
+        if (clickX >= buttonLeft && clickX <= buttonRight && clickY >= buttonTop && clickY <= buttonBottom) {
           startGame();
         }
       }
     });
+    
+    resize();
 
     (function loop() {
       update();
